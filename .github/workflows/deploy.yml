@@ -1,10 +1,11 @@
 name: Deploy to GitHub Pages
 
+# Build validates every PR; deploy only happens from main (the github-pages
+# environment only permits deployments from the default branch).
 on:
   push:
-    branches:
-      - main
-      - claude/photo-stacking-pwa-rdt1yc
+    branches: [main]
+  pull_request:
   workflow_dispatch:
 
 # Allow the workflow to publish to GitHub Pages.
@@ -13,9 +14,9 @@ permissions:
   pages: write
   id-token: write
 
-# One deployment at a time; newer pushes cancel in-flight runs.
+# One run at a time per ref; a PR build never cancels a live main deploy.
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 # Skip Playwright's browser download during npm ci — it isn't needed to build.
@@ -39,6 +40,8 @@ jobs:
 
   deploy:
     needs: build
+    # Deploy only from main; branches/PRs stop after the build (validation) job.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
