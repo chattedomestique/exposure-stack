@@ -1,0 +1,6 @@
+node_modules/
+dist/
+dev-dist/
+scratch-test/
+*.local
+.DS_Store

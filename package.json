@@ -1,0 +1,20 @@
+{
+  "name": "exposure-stack",
+  "version": "0.1.0",
+  "description": "A privacy-first PWA that merges three bracketed exposures into one clean image, entirely in your browser.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "icons": "node scripts/gen-icons.mjs",
+    "test:fixtures": "node scripts/gen-test-exposures.mjs",
+    "test:e2e": "node scripts/e2e.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.61.1",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11",
+    "vite-plugin-pwa": "^0.21.1"
+  }
+}
