@@ -20,15 +20,37 @@ page.on('pageerror', (e) => logs.push(`[pageerror] ${e.message}`))
 try {
   await page.goto(url, { waitUntil: 'networkidle' })
 
-  const files = ['under.png', 'mid.png', 'over.png'].map((f) => join(testDir, f))
-  for (let i = 0; i < 3; i++) {
-    const [chooser] = await Promise.all([
-      page.waitForEvent('filechooser'),
-      page.locator(`.slot[data-index="${i}"]`).click(),
-    ])
-    await chooser.setFiles(files[i])
-    await page.waitForSelector(`.slot[data-index="${i}"].filled`)
-  }
+  // Multi-pick flow: hand over three brackets in a deliberately WRONG order
+  // (bright, dark, mid) via the single "Add photos" picker, and verify the app
+  // auto-sorts them into the slots darkest -> brightest.
+  const files = ['over.png', 'under.png', 'mid.png'].map((f) => join(testDir, f))
+  const [chooser] = await Promise.all([
+    page.waitForEvent('filechooser'),
+    page.locator('#pick').click(),
+  ])
+  await chooser.setFiles(files)
+  await page.waitForSelector('.slot[data-index="2"].filled')
+
+  const slotLum = await page.evaluate(async () => {
+    const out = []
+    for (let i = 0; i < 3; i++) {
+      const img = document.querySelector(`.slot[data-index="${i}"] img`)
+      if (img.decode) await img.decode()
+      const c = document.createElement('canvas')
+      c.width = 32
+      c.height = 32
+      const ctx = c.getContext('2d')
+      ctx.drawImage(img, 0, 0, 32, 32)
+      const d = ctx.getImageData(0, 0, 32, 32).data
+      let s = 0
+      for (let j = 0; j < d.length; j += 4) {
+        s += 0.299 * d[j] + 0.587 * d[j + 1] + 0.114 * d[j + 2]
+      }
+      out.push(s / (d.length / 4))
+    }
+    return out
+  })
+  console.log('SLOT LUMINANCE (should ascend):', slotLum.map((v) => v.toFixed(1)))
 
   const mergeBtn = page.locator('#merge')
   await mergeBtn.waitFor({ state: 'visible' })
@@ -78,6 +100,9 @@ try {
   console.log('STATS:', JSON.stringify(stats, null, 2))
 
   const problems = []
+  if (!(slotLum[0] < slotLum[1] && slotLum[1] < slotLum[2])) {
+    problems.push(`slots not auto-sorted darkest->brightest: ${slotLum.map((v) => v.toFixed(1))}`)
+  }
   if (stats.width < 100 || stats.height < 100) problems.push('output too small')
   if (stats.mean < 0.3 || stats.mean > 0.8) problems.push(`implausible mean ${stats.mean}`)
   // Over-exposed sky was ~blown white; fusion should recover it below pure white.

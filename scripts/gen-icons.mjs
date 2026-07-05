@@ -131,6 +131,9 @@ const targets = [
   { name: 'icon-192.png', size: 192, mark: 0.62 },
   { name: 'icon-512.png', size: 512, mark: 0.62 },
   { name: 'icon-512-maskable.png', size: 512, mark: 0.52 },
+  // iOS home-screen icon. Opaque ground (iOS ignores alpha and adds its own
+  // rounded mask), mark kept clear of the corners.
+  { name: 'apple-touch-icon.png', size: 180, mark: 0.6 },
 ]
 for (const t of targets) {
   const raw = render(t.size, t.mark)
