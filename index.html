@@ -3,8 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0b0f17" />
+    <!-- iOS home-screen / standalone behaviour -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Exposure Stack" />
     <meta
       name="description"
       content="Merge three bracketed exposures into one clean image — privately, in your browser."
@@ -22,6 +28,15 @@
       </header>
 
       <main>
+        <div class="pick-row">
+          <button id="pick" class="primary pick-btn" type="button">
+            <span aria-hidden="true">＋</span> Add photos
+          </button>
+          <p class="pick-hint">
+            Pick all three at once — we sort them darkest&nbsp;→&nbsp;brightest for you.
+          </p>
+        </div>
+
         <section class="slots" id="slots" aria-label="Exposure inputs">
           <!-- Slot cards are injected by main.ts -->
         </section>
@@ -58,8 +73,9 @@
           <div class="result-head">
             <h2>Merged result</h2>
             <div class="result-actions">
-              <button id="download" class="primary">Download PNG</button>
-              <button id="download-jpg" class="ghost">JPEG</button>
+              <button id="save" class="primary" type="button">Save to Photos</button>
+              <button id="download" class="ghost" type="button">PNG</button>
+              <button id="download-jpg" class="ghost" type="button">JPEG</button>
             </div>
           </div>
           <div class="canvas-wrap">

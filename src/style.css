@@ -39,6 +39,9 @@ body {
   margin: 0 auto;
   padding: clamp(16px, 4vw, 40px) clamp(14px, 4vw, 28px) 48px;
   padding-top: calc(env(safe-area-inset-top, 0px) + clamp(16px, 4vw, 40px));
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 48px);
+  padding-left: calc(env(safe-area-inset-left, 0px) + clamp(14px, 4vw, 28px));
+  padding-right: calc(env(safe-area-inset-right, 0px) + clamp(14px, 4vw, 28px));
 }
 
 /* ---------- Top bar ---------- */
@@ -76,6 +79,32 @@ body {
   color: var(--text-dim);
   font-size: clamp(0.9rem, 2.4vw, 1.02rem);
   max-width: 60ch;
+}
+
+/* ---------- Primary pick row ---------- */
+.pick-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.pick-btn {
+  font-size: 1rem;
+  padding: 13px 22px;
+}
+.pick-hint {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+@media (max-width: 680px) {
+  .pick-btn {
+    width: 100%;
+  }
+  .pick-hint {
+    width: 100%;
+  }
 }
 
 /* ---------- Slots ---------- */
