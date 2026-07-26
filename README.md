@@ -33,6 +33,8 @@ so the CPU pyramid engine (in a Web Worker) is the robust choice for v1.
 
 ## Features
 
+- **Camera RAW support** — CR2/CR3, NEF, ARW, RAF, ORF, RW2, DNG and 100+ other
+  formats decode on-device via LibRaw (WebAssembly). No upload, no cloud
 - **One-tap intake** — pick all three brackets at once; they're auto-sorted
   darkest → brightest into the under / standard / over slots
 - **Manual pixel alignment** — an Align panel with a live **difference /
@@ -45,6 +47,25 @@ so the CPU pyramid engine (in a Web Worker) is the robust choice for v1.
   with PNG/JPEG download fallback
 - Installable PWA, fully offline after first load; settings persisted
 - 100% client-side — nothing is uploaded
+
+## Camera RAW
+
+No browser decodes camera RAW natively, so RAW is handled with **LibRaw compiled
+to WebAssembly** ([`libraw-wasm`](https://www.npmjs.com/package/libraw-wasm)),
+loaded lazily the first time a RAW file is picked:
+
+- Decoded to sRGB with the **camera's white balance**, at half resolution (ample
+  for the 2560 px working size, and ~4× faster).
+- **Auto-brightness is disabled** — otherwise LibRaw would stretch each frame to
+  white, normalising the three brackets and leaving the fusion nothing to do.
+  Disabling it preserves their real relative exposures.
+- Verified to decode in a **non cross-origin-isolated** context (no
+  `SharedArrayBuffer` needed), which is what GitHub Pages provides.
+- RAW slot thumbnails are rendered from the decoded preview (a RAW blob can't
+  display in an `<img>`).
+
+Extends the working set at first RAW use; the ~1.4 MB WASM is precached so RAW
+also works offline afterwards.
 
 ## Manual alignment
 
@@ -93,6 +114,7 @@ Inputs are worked at up to 2560 px on the long edge (see `MAX_EDGE` in
 ```
 src/
   main.ts          UI, intake, alignment panel, worker orchestration, persistence
+  raw.ts           camera RAW decode via LibRaw WASM (lazy-loaded)
   merge.worker.ts  pipeline: linearize -> apply offsets -> fuse -> ImageData
   fusion.ts        Mertens exposure fusion (pyramid blending) — pure engine
   align.ts         Median Threshold Bitmap offsets + integer shift — pure engine
@@ -135,5 +157,8 @@ Built against *The Personal PWA Playbook*. Deliberate deviations, with reasons:
   trade-off for the fixed-output merge.
 - **Media not yet persisted to IndexedDB** — settings and nudges persist to
   `localStorage`; restoring the actual photos across a reload is a future step.
+- **~1.4 MB LibRaw WASM is precached** (raising the offline install size) so RAW
+  works offline. It's a lazy import, so it only downloads once a RAW file is
+  actually used, but it is part of the precache manifest for offline support.
 - **Manual mask/brush blending not built** — "manual blending" here means manual
   pixel *registration* feeding the Mertens blend, not region masking.

@@ -1,6 +1,7 @@
 import './style.css'
 import type { MergeOptions } from './merge.worker.ts'
 import type { Offset } from './align.ts'
+import { isRawFile, decodeRaw, RAW_ACCEPT } from './raw.ts'
 
 // Cap the working resolution so the Laplacian-pyramid fusion stays within the
 // memory budget on phones (iOS Safari is especially tight). 2560px on the long
@@ -182,6 +183,7 @@ function isProbablyImage(file: File): boolean {
   return (
     file.type.startsWith('image/') ||
     file.type === '' ||
+    isRawFile(file) ||
     /\.(jpe?g|png|hei[cf]|webp|gif|tiff?|bmp|avif)$/i.test(file.name)
   )
 }
@@ -221,7 +223,10 @@ async function addPhotos(fileList: FileList | File[]) {
 
   if (picked.length >= 3) {
     const three = picked.slice(0, 3)
-    setStatus('Sorting by exposure…', 'working')
+    setStatus(
+      three.some(isRawFile) ? 'Decoding RAW files…' : 'Sorting by exposure…',
+      'working',
+    )
     try {
       const scored = await Promise.all(
         three.map(async (file) => ({ file, b: await meanBrightness(file) })),
@@ -266,7 +271,7 @@ function removeSlot(index: number) {
 function pickFile(index: number) {
   const input = document.createElement('input')
   input.type = 'file'
-  input.accept = 'image/*'
+  input.accept = RAW_ACCEPT
   input.onchange = () => {
     if (input.files && input.files[0]) acceptFile(index, input.files[0])
   }
@@ -278,7 +283,7 @@ function pickFile(index: number) {
 function pickPhotos() {
   const input = document.createElement('input')
   input.type = 'file'
-  input.accept = 'image/*'
+  input.accept = RAW_ACCEPT
   input.multiple = true
   input.onchange = () => {
     if (input.files && input.files.length) void addPhotos(input.files)
@@ -339,11 +344,33 @@ interface Decoded {
   close(): void
 }
 
-// Decode a File to something we can draw. Tries createImageBitmap first (fast,
-// off-DOM), and falls back to an <img> element for formats it can't handle —
-// notably HEIC/HEIF from iPhones, which Safari can render via <img> but not
-// always via createImageBitmap.
+// Camera RAW is expensive to decode (demosaic in WASM), and decodeSource is
+// called several times per file (brightness probe, preview, merge). Cache the
+// decoded RAW pixels per File so each is decoded once; entries are dropped when
+// the File is (WeakMap), i.e. on replace/reset.
+const rawCache = new WeakMap<File, ImageData>()
+
+async function decodeRawCached(file: File): Promise<ImageData> {
+  let img = rawCache.get(file)
+  if (!img) {
+    img = await decodeRaw(file)
+    rawCache.set(file, img)
+  }
+  return img
+}
+
+// Decode a File to something we can draw. RAW goes through LibRaw (WASM);
+// otherwise createImageBitmap first (fast, off-DOM), falling back to an <img>
+// element for formats it can't handle — notably HEIC/HEIF from iPhones.
 async function decodeSource(file: File): Promise<Decoded> {
+  if (isRawFile(file)) {
+    const img = await decodeRawCached(file)
+    const canvas = document.createElement('canvas')
+    canvas.width = img.width
+    canvas.height = img.height
+    canvas.getContext('2d')!.putImageData(img, 0, 0)
+    return { src: canvas, w: img.width, h: img.height, close: () => {} }
+  }
   try {
     const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
     return { src: bitmap, w: bitmap.width, h: bitmap.height, close: () => bitmap.close() }
@@ -444,6 +471,31 @@ async function preparePreviews(): Promise<void> {
   }
 }
 
+// A RAW file's blob URL can't render in an <img>, so once its preview bitmap
+// exists, bake a JPEG data-URL thumbnail from it for the slot card.
+function refreshRawThumbs(): void {
+  let changed = false
+  for (const slot of slots) {
+    if (!(slot.file && isRawFile(slot.file) && slot.preview && slot.url?.startsWith('blob:'))) {
+      continue
+    }
+    const bmp = slot.preview
+    const scale = Math.min(1, 360 / Math.max(bmp.width, bmp.height))
+    const w = Math.max(1, Math.round(bmp.width * scale))
+    const h = Math.max(1, Math.round(bmp.height * scale))
+    const c = document.createElement('canvas')
+    c.width = w
+    c.height = h
+    const ctx = c.getContext('2d')!
+    ctx.imageSmoothingQuality = 'high'
+    ctx.drawImage(bmp, 0, 0, w, h)
+    URL.revokeObjectURL(slot.url)
+    slot.url = c.toDataURL('image/jpeg', 0.72)
+    changed = true
+  }
+  if (changed) renderSlots()
+}
+
 // Show/prepare the alignment panel when all three are loaded; hide otherwise.
 async function refreshAlign(): Promise<void> {
   if (!allFilled()) {
@@ -461,6 +513,7 @@ async function refreshAlign(): Promise<void> {
     )
     return
   }
+  refreshRawThumbs()
   renderAlign()
   updateOffsetReadout()
 }

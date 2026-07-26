@@ -11,7 +11,8 @@
     "test": "vitest run",
     "icons": "node scripts/gen-icons.mjs",
     "test:fixtures": "node scripts/gen-test-exposures.mjs",
-    "test:e2e": "node scripts/e2e.mjs"
+    "test:e2e": "node scripts/e2e.mjs",
+    "test:e2e-raw": "node scripts/e2e-raw.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -23,5 +24,8 @@
     "vite": "^5.4.11",
     "vite-plugin-pwa": "^0.21.1",
     "vitest": "^4.1.10"
+  },
+  "dependencies": {
+    "libraw-wasm": "^1.6.0"
   }
 }
