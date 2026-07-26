@@ -133,8 +133,13 @@ function getShift(
   return [bestDx, bestDy]
 }
 
+export interface Offset {
+  x: number
+  y: number
+}
+
 // Apply an integer shift to an interleaved RGB image, replicating the edge.
-function shiftImage(
+export function shiftImage(
   img: Float32Array,
   w: number,
   h: number,
@@ -159,20 +164,22 @@ function shiftImage(
   return out
 }
 
-// Align every image to the middle (reference) exposure. Returns shifted copies.
-export function alignMTB(
+// Compute the integer pixel offset that best aligns each image to the middle
+// (reference) exposure. The reference itself gets {0,0}. These offsets can be
+// applied directly, or shown in the UI for the user to fine-tune by hand.
+export function computeOffsets(
   images: Float32Array[],
   w: number,
   h: number,
-): Float32Array[] {
+): Offset[] {
   const refIndex = Math.floor(images.length / 2)
   const refLum = luminance(images[refIndex], w, h)
   const maxDepth = Math.max(1, Math.min(6, Math.floor(Math.log2(Math.min(w, h))) - 3))
 
   return images.map((img, i) => {
-    if (i === refIndex) return img
+    if (i === refIndex) return { x: 0, y: 0 }
     const lum = luminance(img, w, h)
     const [dx, dy] = getShift(refLum, lum, w, h, maxDepth)
-    return shiftImage(img, w, h, dx, dy)
+    return { x: dx, y: dy }
   })
 }

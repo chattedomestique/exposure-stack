@@ -206,11 +206,15 @@ function computeWeights(
     }
   }
 
-  // normalize so weights sum to 1 across images at each pixel
+  // Normalize so weights sum to 1 across images at each pixel. Each weight was
+  // already floored by +EPS above, so `sum` is strictly positive — do NOT add
+  // another EPS here: in flat regions where every weight collapses to the floor,
+  // an EPS in the denominator is the same order as `sum` and scales the result
+  // down (it darkened flat areas by ~25%).
   for (let p = 0; p < w * h; p++) {
     let sum = 0
     for (let i = 0; i < n; i++) sum += maps[i][p]
-    const inv = 1 / (sum + EPS)
+    const inv = 1 / sum
     for (let i = 0; i < n; i++) maps[i][p] *= inv
   }
   return maps
