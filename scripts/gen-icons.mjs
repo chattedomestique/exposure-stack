@@ -130,6 +130,7 @@ function encodePNG(size, raw) {
 const targets = [
   { name: 'icon-192.png', size: 192, mark: 0.62 },
   { name: 'icon-512.png', size: 512, mark: 0.62 },
+  { name: 'icon-192-maskable.png', size: 192, mark: 0.52 },
   { name: 'icon-512-maskable.png', size: 512, mark: 0.52 },
   // iOS home-screen icon. Opaque ground (iOS ignores alpha and adds its own
   // rounded mask), mark kept clear of the corners.

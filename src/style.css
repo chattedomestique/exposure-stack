@@ -370,3 +370,166 @@ button:active {
   inset: 0;
   background: rgba(11, 15, 23, 0.55);
 }
+
+/* ---------- Align panel ---------- */
+.align {
+  margin-top: 22px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+.align-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.align-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+/* segmented control */
+.seg {
+  display: inline-flex;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
+}
+.seg button {
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  min-height: auto;
+}
+.seg button.on {
+  background: var(--bg-elev-2);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+.align-stage {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #05070c;
+  display: flex;
+  justify-content: center;
+}
+#align-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: none;
+  cursor: grab;
+}
+#align-canvas:active {
+  cursor: grabbing;
+}
+
+/* on-screen d-pad, bottom-right of the stage */
+.dpad {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, 34px);
+  grid-template-rows: repeat(3, 34px);
+  gap: 3px;
+  opacity: 0.92;
+}
+.dpad button {
+  border: 1px solid var(--border);
+  background: rgba(11, 15, 23, 0.72);
+  backdrop-filter: blur(6px);
+  color: var(--text);
+  border-radius: 8px;
+  font-size: 0.7rem;
+  padding: 0;
+  min-height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dpad button:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.dpad-up {
+  grid-area: 1 / 2;
+}
+.dpad-left {
+  grid-area: 2 / 1;
+}
+.dpad-right {
+  grid-area: 2 / 3;
+}
+.dpad-down {
+  grid-area: 3 / 2;
+}
+
+.align-hint {
+  margin: 12px 0 14px;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: baseline;
+}
+.align-hint .dot {
+  opacity: 0.5;
+}
+.offset {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.align-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px 14px;
+  flex-wrap: wrap;
+}
+
+/* ---------- Accessibility baseline (playbook §10 / §16.8) ---------- */
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm, 6px);
+}
+
+button,
+[role="button"],
+.slot,
+.slider input[type="range"] {
+  min-height: 44px;
+}
+.seg button,
+.dpad button {
+  min-height: auto; /* compact controls keep their own sizing */
+}
+
+button,
+canvas {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

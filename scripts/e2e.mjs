@@ -1,5 +1,6 @@
 // End-to-end smoke test: load the built app, feed three bracketed exposures,
-// run the real OpenCV.js fusion in the worker, and verify a plausible result.
+// exercise the manual-alignment controls, run the fusion, and verify a
+// plausible result.
 import { chromium } from 'playwright'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -52,6 +53,25 @@ try {
   })
   console.log('SLOT LUMINANCE (should ascend):', slotLum.map((v) => v.toFixed(1)))
 
+  // ---- manual alignment controls ----
+  await page.waitForSelector('#align-panel:not([hidden])', { timeout: 15000 })
+  // Nudge the selected layer (Under) right 3px via the on-screen d-pad.
+  for (let k = 0; k < 3; k++) await page.locator('.dpad button[data-nudge="right"]').click()
+  const readoutDpad = (await page.locator('#offset-readout').textContent())?.trim()
+  // Keyboard nudge down 2px on the focused preview.
+  await page.locator('#align-canvas').focus()
+  await page.keyboard.press('ArrowDown')
+  await page.keyboard.press('ArrowDown')
+  const readoutKbd = (await page.locator('#offset-readout').textContent())?.trim()
+  console.log('OFFSET after d-pad:', readoutDpad, '| after keyboard:', readoutKbd)
+  // Auto-align should run without error (synthetic frames are already aligned).
+  await page.locator('#auto-align').click()
+  await page.waitForFunction(() => /Auto-aligned|failed/i.test(document.querySelector('#status')?.textContent || ''), { timeout: 15000 })
+  const autoStatus = (await page.locator('#status').textContent())?.trim()
+  // Reset the nudge so the merge assertions run on aligned frames.
+  await page.locator('#reset-offset').click()
+  const readoutReset = (await page.locator('#offset-readout').textContent())?.trim()
+
   const mergeBtn = page.locator('#merge')
   await mergeBtn.waitFor({ state: 'visible' })
   if (await mergeBtn.isDisabled()) throw new Error('Merge button stayed disabled after 3 files')
@@ -103,6 +123,10 @@ try {
   if (!(slotLum[0] < slotLum[1] && slotLum[1] < slotLum[2])) {
     problems.push(`slots not auto-sorted darkest->brightest: ${slotLum.map((v) => v.toFixed(1))}`)
   }
+  if (!/X \+3/.test(readoutDpad || '')) problems.push(`d-pad nudge wrong: ${readoutDpad}`)
+  if (!/Y \+2/.test(readoutKbd || '')) problems.push(`keyboard nudge wrong: ${readoutKbd}`)
+  if (!/Auto-aligned/i.test(autoStatus || '')) problems.push(`auto-align status: ${autoStatus}`)
+  if (!/X 0 · Y 0/.test(readoutReset || '')) problems.push(`reset nudge wrong: ${readoutReset}`)
   if (stats.width < 100 || stats.height < 100) problems.push('output too small')
   if (stats.mean < 0.3 || stats.mean > 0.8) problems.push(`implausible mean ${stats.mean}`)
   // Over-exposed sky was ~blown white; fusion should recover it below pure white.

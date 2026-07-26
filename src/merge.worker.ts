@@ -1,19 +1,23 @@
 /// <reference lib="webworker" />
 // Runs the exposure-merge pipeline off the main thread:
-//   ImageData[] -> linearize to float RGB -> optional MTB align -> Mertens fuse
-//   -> back to ImageData.
+//   ImageData[] -> linearize to float RGB -> apply per-image offsets -> Mertens
+//   fuse -> back to ImageData.
+// Also answers `autoAlign` requests by returning MTB offsets the UI can edit.
 import { fuse, type FusionWeights } from './fusion.ts'
-import { alignMTB } from './align.ts'
+import { computeOffsets, shiftImage, type Offset } from './align.ts'
 
 export interface MergeOptions extends FusionWeights {
-  align: boolean
+  offsets: Offset[]
 }
 
-type InMessage = { type: 'merge'; images: ImageData[]; options: MergeOptions }
+type InMessage =
+  | { type: 'merge'; images: ImageData[]; options: MergeOptions }
+  | { type: 'autoAlign'; images: ImageData[] }
 
 type OutMessage =
   | { type: 'progress'; message: string }
   | { type: 'result'; image: ImageData }
+  | { type: 'offsets'; offsets: Offset[] }
   | { type: 'error'; message: string }
 
 const post = (msg: OutMessage, transfer?: Transferable[]) =>
@@ -66,23 +70,42 @@ function toImageData(rgb: Float32Array, w: number, h: number): ImageData {
   return new ImageData(out, w, h)
 }
 
+// Common front of the pipeline: to float RGB, sized to the reference frame.
+// The reference is the middle exposure, matching the alignment/offset grid.
+function toReferenceFloats(images: ImageData[]): {
+  floats: Float32Array[]
+  w: number
+  h: number
+} {
+  const ref = Math.floor(images.length / 2)
+  const w = images[ref].width
+  const h = images[ref].height
+  const floats = images.map((img) =>
+    resampleRGB(toFloatRGB(img), img.width, img.height, w, h),
+  )
+  return { floats, w, h }
+}
+
 self.onmessage = (e: MessageEvent<InMessage>) => {
   try {
-    const { images, options } = e.data
-    const w = images[0].width
-    const h = images[0].height
-
-    let floats = images.map((img) =>
-      resampleRGB(toFloatRGB(img), img.width, img.height, w, h),
-    )
-
-    if (options.align && floats.length > 1) {
-      post({ type: 'progress', message: 'Aligning exposures (MTB)…' })
-      floats = alignMTB(floats, w, h)
+    if (e.data.type === 'autoAlign') {
+      const { floats, w, h } = toReferenceFloats(e.data.images)
+      post({ type: 'offsets', offsets: computeOffsets(floats, w, h) })
+      return
     }
 
-    post({ type: 'progress', message: 'Fusing exposures (Mertens)…' })
-    const fused = fuse(floats, w, h, options, (message) =>
+    const { images, options } = e.data
+    const { floats, w, h } = toReferenceFloats(images)
+
+    // Apply the per-image offsets (auto + manual nudges) with edge replication,
+    // so a shifted frame never introduces a transparent gap (playbook N7).
+    const shifted = floats.map((img, i) => {
+      const off = options.offsets[i]
+      return off ? shiftImage(img, w, h, off.x, off.y) : img
+    })
+
+    post({ type: 'progress', message: 'Fusing exposures…' })
+    const fused = fuse(shifted, w, h, options, (message) =>
       post({ type: 'progress', message }),
     )
 

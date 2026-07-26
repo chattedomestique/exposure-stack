@@ -41,12 +41,57 @@
           <!-- Slot cards are injected by main.ts -->
         </section>
 
+        <section class="align" id="align-panel" aria-label="Align exposures" hidden>
+          <div class="align-head">
+            <h2>Align</h2>
+            <div class="seg" id="layer-seg" role="radiogroup" aria-label="Layer to nudge">
+              <button type="button" data-layer="0" role="radio" aria-checked="true" class="on">
+                Under
+              </button>
+              <button type="button" data-layer="2" role="radio" aria-checked="false">Over</button>
+            </div>
+          </div>
+
+          <div class="align-stage">
+            <canvas
+              id="align-canvas"
+              tabindex="0"
+              role="img"
+              aria-label="Alignment preview — drag or use arrow keys to nudge the selected layer"
+            ></canvas>
+            <div class="dpad" id="dpad" aria-label="Nudge one pixel">
+              <button type="button" class="dpad-up" data-nudge="up" aria-label="Nudge up">▲</button>
+              <button type="button" class="dpad-left" data-nudge="left" aria-label="Nudge left">◀</button>
+              <button type="button" class="dpad-right" data-nudge="right" aria-label="Nudge right">▶</button>
+              <button type="button" class="dpad-down" data-nudge="down" aria-label="Nudge down">▼</button>
+            </div>
+          </div>
+
+          <p class="align-hint">
+            <span id="offset-readout" class="offset">X 0 · Y 0 px</span>
+            <span class="dot">·</span>
+            Drag the preview or use the arrows. In <strong>Difference</strong> view, nudge until it
+            goes dark.
+          </p>
+
+          <div class="align-controls">
+            <div class="seg" role="radiogroup" aria-label="Preview mode">
+              <button type="button" id="mode-diff" role="radio" aria-checked="true" class="on">
+                Difference
+              </button>
+              <button type="button" id="mode-onion" role="radio" aria-checked="false">Onion</button>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="grid-toggle" />
+              <span>Grid</span>
+            </label>
+            <button type="button" id="auto-align" class="ghost">Auto-align</button>
+            <button type="button" id="reset-offset" class="ghost">Reset nudge</button>
+          </div>
+        </section>
+
         <section class="controls">
           <div class="control-row">
-            <label class="switch">
-              <input type="checkbox" id="align" checked />
-              <span>Auto-align (MTB)</span>
-            </label>
             <label class="slider">
               <span>Contrast</span>
               <input type="range" id="w-contrast" min="0" max="2" step="0.1" value="1" />
@@ -85,7 +130,7 @@
       </main>
 
       <footer class="foot">
-        <span>Mertens–Kautz–Van Reeth exposure fusion · MTB alignment</span>
+        <span>Mertens exposure fusion · MTB + manual pixel alignment</span>
         <span class="dot">·</span>
         <span>100% on-device — your photos are never uploaded</span>
       </footer>
