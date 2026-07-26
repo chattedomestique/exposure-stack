@@ -6,12 +6,18 @@ import { VitePWA } from 'vite-plugin-pwa'
 // service worker and runs fully offline — all image processing stays on-device.
 export default defineConfig({
   base: './',
+  // libraw-wasm ships its own module worker + .wasm and references them via
+  // `new URL(..., import.meta.url)`. Pre-bundling would break those asset URLs,
+  // so exclude it and let Vite emit the worker/wasm as real assets.
+  optimizeDeps: { exclude: ['libraw-wasm'] },
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+        // Precache the LibRaw wasm too so RAW decoding works offline.
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,wasm}'],
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
       },
       manifest: {
         id: './',
